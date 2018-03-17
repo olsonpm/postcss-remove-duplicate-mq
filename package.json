@@ -1,0 +1,41 @@
+{
+  "name": "postcss-remove-duplicate-mq",
+  "version": "0.1.0",
+  "description": "A PostCSS plugin that emoves duplicate media queries",
+  "main": "index.js",
+  "keywords": [
+    "postcss",
+    "css",
+    "postcss-plugin",
+    "media",
+    "query",
+    "duplicate",
+    "remove"
+  ],
+  "author": "Philip Olson <philip.olson@protonmail.ch>",
+  "license": "SEE LICENSE IN license.txt",
+  "repository": "olsonpm/postcss-remove-duplicate-mq",
+  "bugs": {
+    "url": "https://github.com/olsonpm/postcss-remove-duplicate-mq/issues"
+  },
+  "homepage": "https://github.com/olsonpm/postcss-remove-duplicate-mq",
+  "dependencies": {
+    "postcss": "^6.0.16",
+    "postcss-media-query-parser": "^0.2.3"
+  },
+  "devDependencies": {
+    "eslint": "^4.18.2",
+    "eslint-config-personal": "github:olsonpm/eslint-config-personal",
+    "eslint-config-postcss": "^2.0.2",
+    "jest": "^22.4.2",
+    "prettier": "^1.11.1"
+  },
+  "eslintConfig": {
+    "extends": "personal"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "semi": false
+  }
+}
