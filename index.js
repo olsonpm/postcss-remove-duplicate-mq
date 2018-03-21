@@ -1,9 +1,20 @@
+'use strict'
+
 //---------//
 // Imports //
 //---------//
 
-const postcss = require('postcss'),
-  mediaQueryParser = require('postcss-media-query-parser')
+const cssTree = require('css-tree'),
+  List = require('css-tree/lib/utils/list'),
+  packageJson = require('./package.json'),
+  postcss = require('postcss')
+
+//
+//------//
+// Init //
+//------//
+
+const issueUrl = packageJson.bugs.url
 
 //
 //------//
@@ -11,14 +22,27 @@ const postcss = require('postcss'),
 //------//
 
 const plugin = postcss.plugin('postcss-remove-duplicate-mq', () => {
-  return root => {
+  return (root, result) => {
     root.walkAtRules('media', atRule => {
-      // atRule.params = atRule.params.replace(' and (min-width: 500px)', '')
-      const duplicates = getDuplicateMinMaxRules(atRule.params)
-      if (isEmpty(duplicates)) return
+      if (!atRule.preludeCssTreeAst) {
+        createWarning(result, atRule)
+        return false
+      }
 
-      const declWalker = createDeclWalker(duplicates)
-      atRule.walkDecls(declWalker)
+      // mutates the media features in the ast
+      atRule.preludeCssTreeAst.children
+        .first()
+        .children.forEach(removeDuplicateMediaFeatures)
+
+      const newPreludeString = cssTree.generate(atRule.preludeCssTreeAst),
+        oldParams = atRule.params
+
+      atRule.params = newPreludeString
+
+      atRule.walkDecls(decl => {
+        const { input } = decl.source
+        input.css = input.css.replace(oldParams, newPreludeString)
+      })
     })
   }
 })
@@ -28,97 +52,44 @@ const plugin = postcss.plugin('postcss-remove-duplicate-mq', () => {
 // Helper Functions //
 //------------------//
 
-function createDeclWalker(duplicates) {
-  return decl => {
-    const css = getAtPath(decl, ['source', 'input', 'css'])
+function createWarning(result, atRule) {
+  atRule.warn(
+    result,
+    "Error: expected 'preludeCssTreeAst' on media AtRule.  This means" +
+      " you either\n  1. Don't have the peerDependency" +
+      " 'postcss-create-mq-ast' installed.\n  2. Didn't add it to your" +
+      " list of postcss plugins.\n  3. Didn't place that plugin before" +
+      ' this one (postcss-remove-duplicate-mq).\n\nIf you did all three' +
+      ` of those then please file a github issue at ${issueUrl} so I` +
+      ' can figure out what went wrong.'
+  )
+}
 
-    if (css) {
-      const after = css.replace(' and (min-width: 500px)', '')
-      decl.source.input.css = after
+function removeDuplicateMediaFeatures(mediaQuery) {
+  const result = new List(),
+    alreadyAdded = new Set()
+
+  let cursor = mediaQuery.children.head
+
+  while (cursor !== null) {
+    if (cursor.data.type !== 'MediaFeature') {
+      result.appendData(cursor.data)
+    } else {
+      const id = cssTree.generate(cursor.data)
+      if (!alreadyAdded.has(id)) {
+        result.appendData(cursor.data)
+        alreadyAdded.add(id)
+      } else {
+        while (result.last().type !== 'MediaFeature') {
+          result.remove(result.tail)
+        }
+      }
     }
 
-    // const css = getAtPath(decl, ['source', 'input', 'css']) || ''
-    // //
-    // // TODO: find if this will always return true.  Needs a larger codebase
-    // //   to walk/verify for me to feel confident without it
-    // //
-    // if (stringIncludes(css, '@media ')) {
-    //   removeDuplicates(decl, css, duplicates)
-    // }
-  }
-}
-
-function removeDuplicates(decl, css, duplicates) {
-  decl.source.input.css
-}
-
-function isEmpty(hasLength) {
-  return hasLength.length === 0
-}
-
-function getDuplicateMinMaxRules(mediaParams) {
-  return passThrough(mediaParams, [
-    mediaQueryParser,
-    getAllMinMaxRules,
-    getDuplicates,
-  ])
-}
-
-function getDuplicates(anArray) {
-  let duplicateFound = false,
-    i = 0,
-    currentElement
-
-  const addedAlready = new Set(),
-    duplicates = new Set()
-
-  while (!duplicateFound && i < anArray.length) {
-    currentElement = anArray[i]
-    duplicateFound = addedAlready.has(currentElement)
-    if (duplicateFound) duplicates.add(duplicateFound)
-    else addedAlready.add(currentElement)
-    i += 1
+    cursor = cursor.next
   }
 
-  return [...duplicates]
-}
-
-function passThrough(arg, functionArray) {
-  return functionArray.reduce((result, aFunction) => aFunction(result), arg)
-}
-
-function getAllMinMaxRules(aString) {
-  let match
-  const result = []
-  do {
-    match = minMaxRuleRegex.exec(aString)
-    if (match && match[1]) result.push(match[1])
-  } while (match != null)
-
-  return result
-}
-
-function getAtPath(anObject, aPath) {
-  let i = 0,
-    keyMatches = true
-
-  while (keyMatches && i < aPath.length) {
-    const key = aPath[i]
-    keyMatches = hasKey(anObject, key)
-    if (keyMatches) anObject = anObject[key]
-    i += 1
-  }
-
-  return keyMatches && i === aPath.length ? anObject : undefined
-}
-
-function hasKey(anObject, key) {
-  if (anObject == null) return false
-
-  return (
-    anObject[key] !== undefined ||
-    (typeof anObject === 'object' && key in anObject)
-  )
+  mediaQuery.children = result
 }
 
 //
