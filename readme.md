@@ -90,6 +90,5 @@ The code is very simple, so it may be easier just to give it a look.
 It utilizes [postcss-create-mq-ast](https://github.com/olsonpm/postcss-create-mq-ast)
 to create the media query ast.  It modifies the ast by removing all duplicate
 [media features](https://github.com/csstree/csstree/blob/master/docs/ast.md#mediafeature)
-and gets the new media query string.  It then replaces the [params value](http://api.postcss.org/AtRule.html#params)
-with the new media query string and walks the media AtRule declarations to
-further replace the params value found in the [css input](http://api.postcss.org/Input.html#css).
+and gets the new media query string.  Finally it replaces the [params value](http://api.postcss.org/AtRule.html#params)
+with the new media query string.

@@ -34,15 +34,9 @@ const plugin = postcss.plugin('postcss-remove-duplicate-mq', () => {
         .first()
         .children.forEach(removeDuplicateMediaFeatures)
 
-      const newPreludeString = cssTree.generate(atRule.preludeCssTreeAst),
-        oldParams = atRule.params
+      const newPreludeString = cssTree.generate(atRule.preludeCssTreeAst)
 
       atRule.params = newPreludeString
-
-      atRule.walkDecls(decl => {
-        const { input } = decl.source
-        input.css = input.css.replace(oldParams, newPreludeString)
-      })
     })
   }
 })
