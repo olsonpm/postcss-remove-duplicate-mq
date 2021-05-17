@@ -5,7 +5,7 @@
 //---------//
 
 const cssTree = require('css-tree'),
-  List = require('css-tree/lib/utils/list'),
+  List = require('css-tree/lib/common/list'),
   packageJson = require('./package.json'),
   postcss = require('postcss')
 
